@@ -1,3 +1,7 @@
+# Copyright (C) Dez Moleski dez@moleski.com
+# MIT License: All uses allowed with attribution.
+#
+
 """Elements for making word game generators and solvers.
 """
 import random
