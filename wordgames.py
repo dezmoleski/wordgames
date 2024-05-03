@@ -146,6 +146,9 @@ class Word:
         front_half = self.word[0:halflen]
         rev_back_half = self.word[:-(halflen+1):-1]
         return front_half == rev_back_half
+
+    def reversed(self) -> object:
+        return Word(self.word[::-1])
         
     def sorted_letters(self) -> str:
         '''Returns the letter set as a string of letters in alphabetic order.'''
@@ -299,19 +302,22 @@ class AnagramsDict:
     def __len__(self) -> int:
         return len(self.anagrams)
 
+    def word_key(self, w: Word) -> str:
+        return w.sorted_letters()
+    
     def add_wordlist(self, wl: WordList):
         for word in wl.word_set:
-            sorted_letters = word.sorted_letters()
-            if not sorted_letters in self.anagrams:
-                self.anagrams[sorted_letters] = list()
-            self.anagrams[sorted_letters].append(word.word)
+            key = self.word_key(word)
+            if not key in self.anagrams:
+                self.anagrams[key] = list()
+            self.anagrams[key].append(word.word)
 
     def anagrams_of_word(self, w: Word) -> list:
         ''' Returns None if there are no anagrams of w in the dict.
             Returns a list (not containing w) of anagram strings if w is found.
         '''
-        sorted_letters = w.sorted_letters()
-        agram_list = self.anagrams.get(sorted_letters)
+        key = self.word_key(w)
+        agram_list = self.anagrams.get(key)
         agrams = None
         if not agram_list is None:
             agrams = agram_list.copy()
@@ -341,6 +347,18 @@ class AnagramsDict:
             total += len(v)
         return total
 
+@dataclass
+class PerfectAnagramsDict(AnagramsDict):
+    """ A dictionary of lists of anagrams.
+        The key to each list is the sorted letter LIST, joined back into a string, for the anagrams.
+        This yields what are called "perfect" anagrams, ie formed from exactly the same letters
+        respecting repeats, vs regular anagrams, formed from the same SET of letters without
+        regard to repeated letters.
+    """
+    def word_key(self, w: Word) -> str:
+        letters = sorted(list(w.word))
+        return ''.join(letters)
+    
 WORDNIK_WORDLIST_PATH = './wordnik-wordlist'
 WORDNIK_ADDITIONS_PATH = './wordnik-additions'
 
@@ -1219,10 +1237,37 @@ def score_all_wordleable_words_by_digraphs():
     for k,v in word_digraph_score.items():
         print(v, k)
 
-if __name__ == "__main__":
+def random200():
     awl = all_wordleable_wordlist()
     rwl = WordList.random_from_wordlist(awl,200)
     rwl.sort()
     for w in rwl.word_list:
         print(w)
-    pass
+
+import sys
+if __name__ == "__main__":
+    awl = all_wordleable_wordlist()
+
+    anagrams = PerfectAnagramsDict()
+    anagrams.add_wordlist(awl)
+    anagrams.prune() # remove items with only one anagram
+    
+    palindromes = list()
+    seen = set()
+    print("REVERSIBLE:")
+    for w in awl.word_list:
+        rw = w.reversed()
+        if w == rw:
+            palindromes.append(w)
+        elif not w in seen and rw in awl.word_set:
+            anas = anagrams.anagrams_of_word(w)
+            print(f"1. `{w}` `{rw}`", end='')
+            if not anas is None and len(anas) > 1:
+                print(f" {anas}")
+            else:
+                print()
+            seen.add(rw)
+            
+    print("PALINDROMES:", file=sys.stderr)
+    for p in palindromes:
+        print(f"1. `{p}`", file=sys.stderr)
