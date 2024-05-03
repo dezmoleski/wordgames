@@ -1261,9 +1261,13 @@ if __name__ == "__main__":
             palindromes.append(w)
         elif not w in seen and rw in awl.word_set:
             anas = anagrams.anagrams_of_word(w)
-            print(f"1. `{w}` `{rw}`", end='')
+            print(f"1. `{w}`-`{rw}`", end='')
             if not anas is None and len(anas) > 1:
-                print(f" {anas}")
+                anas.remove(rw.word)
+                print("  [ ", end='')
+                for a in anas:
+                    print(f"`{a}` ", end='')
+                print("]")
             else:
                 print()
             seen.add(rw)
