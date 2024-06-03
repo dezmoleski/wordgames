@@ -188,6 +188,9 @@ class WordList:
     def contains(self, s: str) -> bool:
         return (Word(s) in self.word_set)
     
+    def contains_word(self, word: Word) -> bool:
+        return (word in self.word_set)
+    
     def remove_word(self, word: Word):
         self.word_set.remove(word)
         self.word_list.remove(word)
