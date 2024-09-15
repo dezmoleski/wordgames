@@ -5,6 +5,7 @@
 """Elements for making word game generators and solvers.
 """
 import random
+import sys
 from dataclasses import dataclass
 from dataclasses import field
 
@@ -367,6 +368,7 @@ WORDNIK_ADDITIONS_PATH = './wordnik-additions'
 
 WORDLE_ANSWERS_PATH = 'wordle/ANSWERS'
 WORDLE_GUESSES_PATH = 'wordle/NON-ANSWERS'
+WORDLE_PU_PATH = 'wordle/PU'
 
 WORDLE_UNSCORED = ''
 WORDLE_BLACK = '-'
@@ -1247,8 +1249,7 @@ def random200():
     for w in rwl.word_list:
         print(w)
 
-import sys
-if __name__ == "__main__":
+def find_reversibles():
     awl = all_wordleable_wordlist()
 
     anagrams = PerfectAnagramsDict()
@@ -1278,3 +1279,24 @@ if __name__ == "__main__":
     print("PALINDROMES:", file=sys.stderr)
     for p in palindromes:
         print(f"1. `{p}`", file=sys.stderr)
+
+if __name__ == "__main__":
+    pu = WordList.from_file(WORDLE_PU_PATH)
+    print("N=", len(pu))
+    print("SEQUENTIAL PU ANAGRAMS:")
+    prev_w = None
+    for w in pu.word_list:
+        if not prev_w is None:
+            if w.is_anagram_of_word(prev_w):
+                print(prev_w, w)
+        prev_w = w
+
+    print("ALL PU ANAGRAMS (regardless of order):")
+    pu_anagrams = PerfectAnagramsDict()
+    pu_anagrams.add_wordlist(pu)
+    pu_anagrams.prune()
+    pu_anagrams.sort()
+    seq = 1
+    for v in pu_anagrams.anagrams.values():
+        print(seq, v)
+        seq += 1
