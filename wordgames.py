@@ -131,6 +131,18 @@ class Word:
             v -= 0.5
         return v
     
+    def count_vowels_strict(self) -> float:
+        '''Returns the count of vowels (including repeats) used in the word.
+           Y counts as 0.5 of a vowel.
+        '''
+        v = 0
+        for l in self.word:
+            if l == 'Y':
+                v += 0.5
+            elif l in VOWELS_SET:
+                v += 1
+        return v
+    
     def is_anagram_of_word(self, word: object) -> bool:
         '''A word is NOT an anagram of itself.'''
         return self.letter_set == word.letter_set and self.word != word.word
@@ -1280,7 +1292,7 @@ def find_reversibles():
     for p in palindromes:
         print(f"1. `{p}`", file=sys.stderr)
 
-if __name__ == "__main__":
+def find_pu_anagrams():
     pu = WordList.from_file(WORDLE_PU_PATH)
     print("N=", len(pu))
     print("SEQUENTIAL PU ANAGRAMS:")
@@ -1300,3 +1312,16 @@ if __name__ == "__main__":
     for v in pu_anagrams.anagrams.values():
         print(seq, v)
         seq += 1
+
+if __name__ == "__main__":
+    # Print a random 100 lines from a file (presumably longer than 100 lines!)
+    lines = list()
+    with open('wordnik-beewords', 'r') as f:
+        for line in f:
+            lines.append(line)
+    print("N lines = ", len(lines))
+    random100 = random.sample(lines, 100)
+    print("N random lines = ", len(random100))
+    random100.sort()
+    for l in random100:
+        print(l, end='')
