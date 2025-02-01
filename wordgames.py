@@ -266,6 +266,13 @@ class WordList:
         return wl
 
     @classmethod
+    def from_word_set(cls, w_set: set) -> object:
+        wl = cls()
+        for w in w_set:
+            wl.add_word(w)
+        return wl
+    
+    @classmethod
     def from_file(cls, path: str) -> object:
         wl = cls()
         with open(path, 'r') as f:
@@ -387,6 +394,10 @@ WORDLE_BLACK = '-'
 WORDLE_YELLOW = 'y'
 WORDLE_GREEN = 'G'
 
+BLACK_SQUARE = "\U00002B1B"
+YELLOW_SQUARE = "\U0001F7E8"
+GREEN_SQUARE = "\U0001F7E9"
+
 @dataclass
 class Wordle:
     word_str: str = ''
@@ -416,10 +427,10 @@ class Wordle:
                 guess_char = guess[i]
                 if not guess_char in self.word_str:
                     # BLACK
-                    result[i] = WORDLE_BLACK
+                    result[i] = BLACK_SQUARE
                 elif guess_char == self.word_str[i]:
                     # GREEN
-                    result[i] = WORDLE_GREEN
+                    result[i] = GREEN_SQUARE
             # Yellows are harder because of the need to deal with repeated letters.
             n_unscored = result.count(WORDLE_UNSCORED)
             while n_unscored > 0:
@@ -439,7 +450,7 @@ class Wordle:
                 if n_in_wordle == 1 and n_in_guess == 1:
                     # This is the easy case, it's YELLOW (since if this one occurrence was in
                     # the right place it would already have been scored GREEN).
-                    result[i] = WORDLE_YELLOW
+                    result[i] = YELLOW_SQUARE
                 else:
                     # Trickier... we are dealing with repeated characters in the guess, or in
                     # the wordle, or in BOTH!
@@ -451,20 +462,20 @@ class Wordle:
                         #   - we know n in wordle must be > 1
                         #   - we know this guess position doesn't match, or it'd already be a GREEN
                         assert(n_in_wordle > 1)
-                        result[i] = WORDLE_YELLOW
+                        result[i] = YELLOW_SQUARE
                     elif n_in_wordle == 1 and n_in_guess > 1:
                         # At most 1 of the occurrences of guess_char in the guess can be non-BLACK.
                         # If one of the occurrences of guess_char is already GREEN, then the
                         # rest are black.
                         any_are_green = False
                         for r in range(len(result)):
-                            if guess_char == guess[r] and result[r] == WORDLE_GREEN:
+                            if guess_char == guess[r] and result[r] == GREEN_SQUARE:
                                 any_are_green = True
                                 break # we can end this loop now, we know
                         if any_are_green:
                             for r in range(len(result)):
                                 if guess_char == guess[r] and result[r] == WORDLE_UNSCORED:
-                                    result[r] = WORDLE_BLACK
+                                    result[r] = BLACK_SQUARE
                         else:
                             # SUSPECT CODE! TODO!!! But we DO know the following at this point:
                             #   - the guess_char appears only once in the wordle
@@ -476,11 +487,11 @@ class Wordle:
                             # a YELLOW, otherwise it's a BLACK.
                             gi = guess.index(guess_char) # remember this is the FIRST index.
                             if i == gi:
-                                result[i] = WORDLE_YELLOW
+                                result[i] = YELLOW_SQUARE
                             else:
                                 # We must be "further down" in the guess/result than the first one.
                                 assert(gi < i)
-                                result[i] = WORDLE_BLACK
+                                result[i] = BLACK_SQUARE
                     else:
                         # Final case, trickiest of all. We know:
                         #   - this guess char appears more than once in the wordle, AND
@@ -501,7 +512,7 @@ class Wordle:
                         n_to_visit = n_in_guess
                         n_green = 0 # TODO: there's probably a nice one-liner count with a lambda predicate to collapse these 4 lines
                         for r in range(len(result)):
-                            if guess_char == guess[r] and result[r] == WORDLE_GREEN:
+                            if guess_char == guess[r] and result[r] == GREEN_SQUARE:
                                 n_green += 1                 
                         n_yellow_to_give = n_in_wordle - n_green # this is the MOST yellows to give, not necessarily how many yellows there may be
                         assert(n_yellow_to_give >= 0) # we might even know it's strictly > 0 but it surely better not be negative!
@@ -509,10 +520,10 @@ class Wordle:
                             if guess_char == guess[r]:
                                 if result[r] == WORDLE_UNSCORED:
                                     if n_yellow_to_give > 0:
-                                        result[r] = WORDLE_YELLOW
+                                        result[r] = YELLOW_SQUARE
                                         n_yellow_to_give -= 1
                                     else:
-                                        result[r] = WORDLE_BLACK
+                                        result[r] = BLACK_SQUARE
                                 n_to_visit -= 1
                                 if n_to_visit == 0:
                                     break # we can stop this loop, we've visited all instances of this guess_char
@@ -860,16 +871,40 @@ def how_many_wordles_can_yield_5_yellows():
     
 def wordle_tests():
     # Now I have a Wordle scorer!
-    #wordle = Wordle.from_str('three')
+    def result_str(r):
+        return f"{r[0]} {r[1]}"
+    
     #wordle = Wordle.from_str('there')
-    # print(wordle.guess('plain'))
-    # print(wordle.guess('roust'))
-    # print(wordle.guess('array'))
-    # print(wordle.guess('terry'))
-    # print(wordle.guess('three'))
-    # print(wordle.guess('emcee'))
-    # print(wordle.guess('there'))
- 
+    wordle = Wordle.from_str('three')
+    print("THREE")
+    l = list()
+    r = result_str(wordle.guess('plain'))
+    print(r)
+    l.append(r)
+    r = result_str(wordle.guess('roust'))
+    print(r)
+    l.append(r)
+    r = result_str(wordle.guess('array'))
+    print(r)
+    l.append(r)
+    r = result_str(wordle.guess('terry'))
+    print(r)
+    l.append(r)
+    r = result_str(wordle.guess('three'))
+    print(r)
+    l.append(r)
+    r = result_str(wordle.guess('emcee'))
+    print(r)
+    l.append(r)
+    r = result_str(wordle.guess('there'))
+    print(r)
+    l.append(r)
+    print()
+    l.sort()
+    for s in l:
+        print(s)
+    print()
+    
     # wordle = Wordle.from_str('tibia')
     # print(wordle.guess('video'))
     # print(wordle.guess('first'))
@@ -947,13 +982,45 @@ def wordle_tests():
     # print(wordle.guess('embed'))
     # print(wordle.guess('libel'))
 
-    # wordle = Wordle.from_str('waltz')
-    # print(wordle.guess('lithe'))
-    # print(wordle.guess('stall'))
-    # print(wordle.guess('bloat'))
-    # print(wordle.guess('malty'))
-    # print(wordle.guess('waltz'))
+    wordle = Wordle.from_str('waltz')
+    print(wordle.guess('lithe'))
+    print(wordle.guess('stall'))
+    print(wordle.guess('bloat'))
+    print(wordle.guess('malty'))
+    print(wordle.guess('waltz'))
     pass
+
+def print_wordle_result_patterns(start_word_str: str):
+    def result_str(r):
+        return f"{r[0]}"
+        #return f"{r[0]} {r[2]}"
+    
+    answers = WordList.from_file(WORDLE_ANSWERS_PATH)
+    answers.sort()
+
+    print(start_word_str.upper())
+    l = list()
+    d = dict()
+    for w in answers.word_list:
+        # If this answer is THE answer, what would the given start word yield?
+        wordle = Wordle.from_str(w.word)
+        r, _, a, _ = wordle.guess(start_word_str)
+        wl = d.get(r)
+        if wl is None:
+            d[r] = [a]
+        else:
+            wl.append(a)
+
+    keys = list(d.keys())
+    keys.sort()
+    
+    for k in keys:
+        words_left = d[k];
+        if len(words_left) == 1:
+            print(k, words_left[0])
+        else:
+            print(k, len(words_left))
+            print(words_left)
 
 def all_wordleable_wordlist() -> WordList:
     wordleable = WordList.from_file(WORDLE_GUESSES_PATH)
@@ -1313,7 +1380,7 @@ def find_pu_anagrams():
         print(seq, v)
         seq += 1
 
-if __name__ == "__main__":
+def random_100_from_file():
     # Print a random 100 lines from a file (presumably longer than 100 lines!)
     lines = list()
     with open('wordnik-beewords', 'r') as f:
@@ -1325,3 +1392,7 @@ if __name__ == "__main__":
     random100.sort()
     for l in random100:
         print(l, end='')
+
+if __name__ == "__main__":
+    #wordle_tests()
+    print_wordle_result_patterns('ariel')
