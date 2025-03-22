@@ -246,6 +246,27 @@ class WordList:
                 dicount[digraph] = count + 1
         return dicount
         
+    def digraph_lists_by_word(self) -> dict:
+        """ Returns a dictionary with the digraph as key and
+            a list of words containing that digraph as value.
+        """
+        dilist = dict()
+        for w in self.word_list:
+            prev_letter = ''
+            digraphs = set()
+            for letter in w.word:
+                if prev_letter != '':
+                    digraph = prev_letter + letter
+                    digraphs.add(digraph)
+                prev_letter = letter
+            for digraph in digraphs:
+                l = dilist.get(digraph)
+                if l is None:
+                    l = list()
+                    dilist[digraph] = l
+                l.append(w)
+        return dilist
+        
     def heterograms(self) -> set:
         h = set()
         for word in self.word_set:
@@ -385,6 +406,7 @@ class PerfectAnagramsDict(AnagramsDict):
 WORDNIK_WORDLIST_PATH = './wordnik-wordlist'
 WORDNIK_ADDITIONS_PATH = './wordnik-additions'
 
+WORDLE_ALL_PATH = 'wordle/ALL'
 WORDLE_ANSWERS_PATH = 'wordle/ANSWERS'
 WORDLE_GUESSES_PATH = 'wordle/NON-ANSWERS'
 WORDLE_PU_PATH = 'wordle/PU'
@@ -1393,6 +1415,119 @@ def random_100_from_file():
     for l in random100:
         print(l, end='')
 
+def find_single_double_letter_words(filepath: str):
+    # Prints words from the given file that have ONLY one (a single) letter
+    # that is doubled and doesn't appear more than two times, i.e. appears twice
+    # in succession and no more, e.g. CHEER but not REFER or EERIE.
+    wl = WordList.from_file(filepath)
+    print('Double letter words from:', filepath, ' N total=', len(wl), file=sys.stderr)
+    wl.sort()
+
+    for w in wl.word_list:
+        if len(w.letter_set) == (len(w) - 1): # there is one letter repeated
+            # Now look to see if the repeated letter is doubled in succession.
+            prev_letter = ''
+            for l in w.word:
+                if l == prev_letter:
+                    print("1. `{}`".format(w))
+                prev_letter = l
+                
+def find_set_overlap_words(filepath: str, letters: str, min_overlap: int):
+    wl = WordList.from_file(filepath)
+    print('Overlapping words from:', filepath, ' N total=', len(wl), file=sys.stderr)
+    wl.sort()
+    letters_word = Word(letters)
+    print('Target letters:', letters_word.letter_set, ' min overlap=', min_overlap, file=sys.stderr)
+    
+    for w in wl.word_list:
+        common_letters = letters_word.letter_set & w.letter_set
+        if len(common_letters) >= min_overlap:
+            t_count = w.word.count('T')
+            print(w, len(common_letters), common_letters, t_count)
+                
+def letter_set_length_histogram(filepath: str):
+    # Counts letter set sizes for words from the given file, and prints results.
+    wl = WordList.from_file(filepath)
+    N = len(wl)
+    print('Letter sets from:', filepath, ' N total=', N, file=sys.stderr)
+    wl.sort()
+    
+    count = [0] * 20 # Longer than longest letter set we expect to encounter, ever
+    max_len = 0
+    exemplar = [''] * 20
+
+    for w in wl.word_list:
+        this_len = len(w.letter_set)
+        count[this_len] += 1
+        if this_len > max_len:
+            max_len = this_len
+        exemplar[this_len] = w.word
+        #if exemplar[this_len] == '':
+            
+    print('Len  Count  % of N Words with letter set of this length  Exemplar')
+    check = 0
+    for i in range(1, max_len+1):
+        check += count[i]
+        percent = count[i] / N
+        print(i, count[i], f'{percent:.2%}', exemplar[i])
+    print("Check count:", check, N)
+    
+def get_letter_set_lengths():
+    letter_set_length_histogram(WORDLE_GUESSES_PATH)
+    letter_set_length_histogram(WORDLE_ANSWERS_PATH)
+    letter_set_length_histogram(WORDLE_PU_PATH)
+    
+def print_letter_pair_counts(filepath: str):
+    # Ok, technically not digraphs but letter pairs but I didn't know that when I wrote digraphs_by_word()
+    # The "by word" part means that if a word contains two of the same digraphs (like TUTUS) that only
+    # adds 1 (one) to the count for the letter pair "TU" (i.e. TUTUS is just one more word containing "TU").
+    # So, get all the by-word counts of each letter pair appearing in the word list found at the given path.
+    wl = WordList.from_file(filepath)
+    N = len(wl)
+    print('Letter pairs from:', filepath, ' N total=', N, file=sys.stderr)
+    wl.sort()
+    #pair_counts = wl.digraphs_by_word() # key is the letter pair, value is the count
+    pair_lists = wl.digraph_lists_by_word()  # key is the letter pair, value is a list of words
+    
+    # We're going to rearrange the data from the pair counts { "GN": 28, ... }
+    # into a set of 26 lists of integers with 26 entries per list, so we end up
+    # with a "table" with 26 rows A-Z (first letter of the pair) and 26 columns
+    # (second letter of the pair) containing the corresponding word count.
+    pairs_table = dict()
+    for c in ALPHABET_LIST:
+        counts_list = [0]*26
+        pairs_table[c] = counts_list
+
+    # Time to rearrange... and collect the pairs which have only single-digit counts
+    #for k,v in pair_counts.items():
+    single_digits = list()
+    for k,v in pair_lists.items():
+        row_letter = k[0]
+        col_letter = k[1]
+        # convert column letter to an index (assume they're already uppercase... they are)
+        col_index = ord(col_letter) - ord('A')
+        #pairs_table[row_letter][col_index] = v
+        count = len(v)
+        pairs_table[row_letter][col_index] = count
+        if count < 10:
+            single_digits.append(k)
+
+    for c in ALPHABET_LIST:
+        print(c, pairs_table[c])
+
+    single_digits.sort()
+    for pair in single_digits:
+        l = pair_lists[pair]
+        print(pair, len(l), end=' ')
+        for w in l:
+            print(w, end=' ')
+        print()
+        
 if __name__ == "__main__":
     #wordle_tests()
-    print_wordle_result_patterns('ariel')
+    #print_wordle_result_patterns('ariel')
+    #find_single_double_letter_words(WORDLE_GUESSES_PATH)
+    #print_letter_pair_counts(WORDLE_ALL_PATH)
+    #print_letter_pair_counts(WORDLE_ANSWERS_PATH)
+    find_set_overlap_words(WORDLE_ALL_PATH, "BCHPTW", 3)
+    
