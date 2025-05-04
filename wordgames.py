@@ -396,8 +396,8 @@ class PerfectAnagramsDict(AnagramsDict):
     """ A dictionary of lists of anagrams.
         The key to each list is the sorted letter LIST, joined back into a string, for the anagrams.
         This yields what are called "perfect" anagrams, ie formed from exactly the same letters
-        respecting repeats, vs regular anagrams, formed from the same SET of letters without
-        regard to repeated letters.
+        respecting repeats, vs regular anagrams, which are formed from the same SET of letters
+        without regard to repeated letters.
     """
     def word_key(self, w: Word) -> str:
         letters = sorted(list(w.word))
@@ -419,6 +419,8 @@ WORDLE_GREEN = 'G'
 BLACK_SQUARE = "\U00002B1B"
 YELLOW_SQUARE = "\U0001F7E8"
 GREEN_SQUARE = "\U0001F7E9"
+
+YYYYY = YELLOW_SQUARE+YELLOW_SQUARE+YELLOW_SQUARE+YELLOW_SQUARE+YELLOW_SQUARE
 
 @dataclass
 class Wordle:
@@ -829,13 +831,13 @@ class WordTrains:
         return word_train
 
 def how_many_wordles_can_yield_5_yellows():
-    valid_guesses = WordList.from_file('wordle/wordle-nyt-allowed-guesses-update-12546.txt')
-    answers = WordList.from_file('wordle/wordle-nyt-answers-alphabetical.txt')
-    print('nonanswer guesses len=', len(valid_guesses))
+    valid_guesses = WordList.from_file(WORDLE_GUESSES_PATH)
+    answers = WordList.from_file(WORDLE_ANSWERS_PATH)
+    #print('nonanswer guesses len=', len(valid_guesses))
     #print('answers len=', len(answers))
     valid_guesses.add_wordlist(answers)
-    print('valid guesses (includes answers) len=', len(valid_guesses))
-
+    #print('valid guesses (includes answers) len=', len(valid_guesses))
+    
     # The guess_anagrams dict INCLUDES answers
     guess_anagrams = AnagramsDict()
     guess_anagrams.add_wordlist(valid_guesses)
@@ -857,14 +859,15 @@ def how_many_wordles_can_yield_5_yellows():
     #print('len GUESS/ANSWER anagrams=', len(guess_anagrams))
     #print(guess_anagrams)
 
-    print('# of answers:', len(answers.word_list))
-    print('# of anagram sets containing an answer:',len(guess_anagrams))
+    #print('# of answers:', len(answers.word_list))
+    #print('# of anagram sets containing an answer:',len(guess_anagrams))
     n_with_anagrams = 0
     n_with_yyyyy = 0
     MAX_N_YYYYY = 8 # found by earlier runs
     max_n_yyyyy_words = []
     word: Word = None
     dez = None
+    answers_with_yyyyy = dict()
     for word in answers.word_list:
         word_letters_sorted = word.sorted_letters()
         if word_letters_sorted in guess_anagrams.anagrams:
@@ -878,19 +881,36 @@ def how_many_wordles_can_yield_5_yellows():
                 if guess != word.word:
                     score, g, w, sl = wordle.guess(guess)
                     assert(g == guess and w == word.word)
-                    if (score == 'yyyyy'):
+                    if (score == YYYYY):
                         n_yyyyy += 1
-                        print(score, g, w)
+                        #print(score, g, w)
+                        l = answers_with_yyyyy.get(w)
+                        if l is None:
+                            l = list()
+                            answers_with_yyyyy[w] = l
+                        l.append(g)
             if n_yyyyy > 0:
                 n_with_yyyyy += 1
                 if n_yyyyy == MAX_N_YYYYY:
                     max_n_yyyyy_words.append(word.word)
 
-    print('# of answer words in an anagram set:', n_with_anagrams)
-    print('# of answer words with an anagram scored yyyyy:', n_with_yyyyy)
-    print('words with max # (8) of anagrams scored yyyyy:', max_n_yyyyy_words)
-    print('STARE anagrams:', dez)
-    
+    #print('# of answer words in an anagram set:', n_with_anagrams)
+    #print('# of answer words with an anagram scored yyyyy:', n_with_yyyyy)
+    #print('# of UNIQUE answer words with at least one anagram scored yyyyy:', len(answers_with_yyyyy))
+    #print('words with max # (8) of anagrams scored yyyyy:', max_n_yyyyy_words)
+    #print('STARE anagrams:', dez)
+
+    '''Sort each list of anagrams.'''
+    for v in answers_with_yyyyy.values():
+        v.sort()
+    for k,v in answers_with_yyyyy.items():
+        print(len(v), f'{k}: ', end='')
+        for w in v:
+            print(w, end='')
+            if w != v[-1]:
+                print(', ', end='')
+        print()
+        
 def wordle_tests():
     # Now I have a Wordle scorer!
     def result_str(r):
@@ -1445,6 +1465,35 @@ def find_set_overlap_words(filepath: str, letters: str, min_overlap: int):
             t_count = w.word.count('T')
             print(w, len(common_letters), common_letters, t_count)
                 
+def word_length_histogram(filepath: str):
+    # Counts lengths of words from the given file, and prints results.
+    wl = WordList.from_file(filepath)
+    N = len(wl)
+    print('Word lengths from:', filepath, ' N total=', N, file=sys.stderr)
+    wl.sort()
+    
+    count = [0] * 30 # Longer than longest letter set we expect to encounter, ever
+    max_len = 0
+    exemplar = [''] * 30
+
+    for w in wl.word_list:
+        this_len = len(w.word)
+        count[this_len] += 1
+        if this_len > max_len:
+            max_len = this_len
+        if exemplar[this_len] == '':
+            exemplar[this_len] = w.word
+        if this_len == 2:
+            print(w.word)
+            
+    print('Len  Count  % of N Words of this length  Exemplar')
+    check = 0
+    for i in range(1, max_len+1):
+        check += count[i]
+        percent = count[i] / N
+        print(i, count[i], f'{percent:.2%}', exemplar[i])
+    print("Check count:", check, N)
+    
 def letter_set_length_histogram(filepath: str):
     # Counts letter set sizes for words from the given file, and prints results.
     wl = WordList.from_file(filepath)
@@ -1522,12 +1571,170 @@ def print_letter_pair_counts(filepath: str):
         for w in l:
             print(w, end=' ')
         print()
-        
+
+def find_6L_minus_one_wordleables():
+    wordleable = WordList.from_file(WORDLE_ALL_PATH)
+    wordnik_all = WordList.from_file(WORDNIK_WORDLIST_PATH)
+    for w in wordnik_all.word_list:
+        if len(w.word) == 6:
+            for i in range(0,6):
+                left = w.word[0:i]
+                letter = w.word[i:i+1]
+                right = w.word[i+1:]
+                w5L = left + right
+                if wordleable.contains(w5L):
+                    print(f'{left}({letter.lower()}){right}')
+
+def find_wordleable_splits_2_8():
+    wordleable = WordList.from_file(WORDLE_ALL_PATH)
+    wordnik_all = WordList.from_file(WORDNIK_WORDLIST_PATH)
+    wordnik_2 = WordList()
+    wordnik_8 = WordList()
+    for w in wordnik_all.word_list:
+        l = len(w.word) 
+        if l == 2:
+            wordnik_2.add_word(w)
+        elif l == 8:
+            wordnik_8.add_word(w)
+    wordnik_2.sort()
+    wordnik_8.sort()
+
+    print('#### 2 8')
+    for w2 in wordnik_2.word_list:
+        for w8 in wordnik_8.word_list:
+            w10 = w2.word + w8.word
+            w5a = w10[0:5]
+            w5b = w10[5:]
+            if wordleable.contains(w5a) and wordleable.contains(w5b):
+                print(f'{w2.word} {w5a[2:5]}/{w5b}')
+
+    print('#### 8 2')
+    for w8 in wordnik_8.word_list:
+        for w2 in wordnik_2.word_list:
+            w10 = w8.word + w2.word
+            w5a = w10[0:5]
+            w5b = w10[5:]
+            if wordleable.contains(w5a) and wordleable.contains(w5b):
+                print(f'{w5a}/{w5b[0:3]} {w2.word}')
+
+                    
+def find_wordleable_splits_3_7():
+    wordleable = WordList.from_file(WORDLE_ALL_PATH)
+    wordnik_all = WordList.from_file(WORDNIK_WORDLIST_PATH)
+    wordnik_3 = WordList()
+    wordnik_7 = WordList()
+    for w in wordnik_all.word_list:
+        l = len(w.word) 
+        if l == 3:
+            wordnik_3.add_word(w)
+        elif l == 7:
+            wordnik_7.add_word(w)
+    wordnik_3.sort()
+    wordnik_7.sort()
+
+    print('#### 3 7')
+    for w3 in wordnik_3.word_list:
+        for w7 in wordnik_7.word_list:
+            w10 = w3.word + w7.word
+            w5a = w10[0:5]
+            w5b = w10[5:]
+            if wordleable.contains(w5a) and wordleable.contains(w5b):
+                print(f'{w3.word} {w5a[3:5]}/{w5b}')
+
+    print('#### 7 3')
+    for w7 in wordnik_7.word_list:
+        for w3 in wordnik_3.word_list:
+            w10 = w7.word + w3.word
+            w5a = w10[0:5]
+            w5b = w10[5:]
+            if wordleable.contains(w5a) and wordleable.contains(w5b):
+                print(f'{w5a}/{w5b[0:2]} {w3.word}')
+
+def find_wordleable_splits_20_15_10():
+    wordleable = WordList.from_file(WORDLE_ALL_PATH)
+    wordnik_all = WordList.from_file(WORDNIK_WORDLIST_PATH)
+    wordnik_10 = WordList()
+    wordnik_15 = WordList()
+    wordnik_20 = WordList()
+    for w in wordnik_all.word_list:
+        l = len(w.word) 
+        if l == 10:
+            wordnik_10.add_word(w)
+        elif l == 15:
+            wordnik_15.add_word(w)
+        elif l == 20:
+            wordnik_15.add_word(w)
+    wordnik_10.sort()
+    wordnik_15.sort()
+    wordnik_20.sort()
+
+    """
+    print('#### 10')
+    for w in wordnik_10.word_list:
+        w5a = w.word[0:5]
+        w5b = w.word[5:]
+        if wordleable.contains(w5a) and wordleable.contains(w5b):
+            print(w5a, w5b)
+    """
+    """
+    print('#### 15')
+    for w in wordnik_15.word_list:
+        w5a = w.word[0:5]
+        w5b = w.word[5:10]
+        w5c = w.word[10:]
+        if wordleable.contains(w5a) and wordleable.contains(w5b) and wordleable.contains(w5c):
+            print(w5a, w5b, w5c)
+    """
+    print('#### 20')
+    for w in wordnik_20.word_list:
+        w5a = w.word[0:5]
+        w5b = w.word[5:10]
+        w5c = w.word[10:15]
+        w5d = w.word[15:]
+        if wordleable.contains(w5a) and wordleable.contains(w5b) and wordleable.contains(w5c) and wordleable.contains(w5d):
+            print(w5a, w5b, w5c, w5d)
+
+def find_wordle_anagrams(wordlen: int, with_answers_only: bool):
+    wordleable = WordList.from_file(WORDLE_ALL_PATH)
+    answers = WordList.from_file(WORDLE_ANSWERS_PATH)
+    
+    # First select words that have the given number of distinct letters
+    words = WordList()
+    for w in wordleable.word_list:
+        if wordlen == 0 or len(w.letter_set) == wordlen:
+            words.add_word(w)
+    
+    # Now add them to the perfect anagrams dict.
+    ad = PerfectAnagramsDict()
+    ad.add_wordlist(words)
+    ad.prune()
+    ad.sort() # sorts each list of anagrams
+    
+    for v in ad.anagrams.values():
+        line = f'{len(v):2} '
+        n_answers = 0
+        for w in v:
+            line += str(w)
+            if answers.contains(w):
+                line += '*'
+                n_answers += 1
+            if w != v[-1]:
+                line += ', '
+        line += f'  ${n_answers}  letters={len(set(w))}'
+        if not with_answers_only or n_answers > 0:
+            print(line)
+            
 if __name__ == "__main__":
     #wordle_tests()
     #print_wordle_result_patterns('ariel')
     #find_single_double_letter_words(WORDLE_GUESSES_PATH)
     #print_letter_pair_counts(WORDLE_ALL_PATH)
     #print_letter_pair_counts(WORDLE_ANSWERS_PATH)
-    find_set_overlap_words(WORDLE_ALL_PATH, "BCHPTW", 3)
+    #find_set_overlap_words(WORDLE_ALL_PATH, "BCHPTW", 3)
+    #find_6L_minus_one_wordleables()
+    #word_length_histogram(WORDNIK_WORDLIST_PATH)
+    #find_wordleable_splits_2_8()
+    #find_wordleable_splits_20_15_10()
+    #find_wordle_anagrams(0, with_answers_only=True)
+    how_many_wordles_can_yield_5_yellows()
     
