@@ -29,16 +29,7 @@ import sys
 import time
 from wordgames import Word, WordList
 
-def read_key() -> str:
-    keypath = './api-key-collegiate'
-    if not os.path.isfile(keypath):
-        exit(f'Key file not found: {keypath}')
-    # M-W API key must be alone on first line of key file.
-    with open(keypath, 'r') as file:
-        key = file.readline().strip()
-    return key
-
-KEY=read_key()
+import keys
 
 def lookup(word: str):
     path_not_found = f'cache-coll/{word}.not-found'
@@ -54,11 +45,14 @@ def lookup(word: str):
     
     print(f'Looking up: "{word}"', file=sys.stderr, flush=True)
 
-    URL=f'https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={KEY}'
+    URL=f'https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={keys.MW_COLLEGIATE}'
     #print(URL, file=sys.stderr, flush=True)
     
     response = requests.get(URL)
-    if response:  # Evaluates to True for status codes < 400
+    if "Invalid API key" in response.text:
+        print(f'ERROR: Invalid key. Check key={keys.MW_COLLEGIATE} is correct for API https://dictionaryapi.com/api/v3/references/collegiate/json/',
+              file=sys.stderr, flush=True)
+    elif response:  # Evaluates to True for status codes < 400
         #print(f'Request succeeded with status code: {response.status_code}', file=sys.stderr, flush=True)
         data = response.json()
         if not isinstance(data, list):
