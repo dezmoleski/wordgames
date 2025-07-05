@@ -106,4 +106,4 @@ if __name__ == "__main__":
         index += 1
         print(f'{index} of {N} - ', end='', file=sys.stderr, flush=True)
         lookup(w.word.lower())
-        time.sleep(10)
+        time.sleep(120)
