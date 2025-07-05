@@ -1,0 +1,13 @@
+#!/bin/sh
+echo -n "FOUND: "
+N_FOUND=`ls -1 cache-coll/*.json | cut -f 1 -d '.' | cut -f 2 -d '/' | wc -l`
+echo $N_FOUND
+ls -1 cache-coll/*.json | cut -f 1 -d '.' | cut -f 2 -d '/' | column
+echo ""
+echo -n "NOT FOUND: "
+N_NOT_FOUND=`ls -1 cache-coll/*.not-found | cut -f 1 -d '.' | cut -f 2 -d '/' | wc -l`
+echo $N_NOT_FOUND
+ls -1 cache-coll/*.not-found | cut -f 1 -d '.' | cut -f 2 -d '/' | column
+echo ""
+echo -n "TOTAL: "
+expr $N_FOUND + $N_NOT_FOUND

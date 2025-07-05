@@ -1,0 +1,2 @@
+#!/bin/sh
+grep verb PARSED-ENTRIES | cut -f 1 -d ' ' | column

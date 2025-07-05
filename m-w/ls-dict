@@ -1,0 +1,3 @@
+#!/bin/sh
+ls -1 cache-coll/*.json | cut -f 1 -d '.' | cut -f 2 -d '/' | column
+ls -1 cache-coll/*.json | cut -f 1 -d '.' | cut -f 2 -d '/' | wc -l
