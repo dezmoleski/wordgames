@@ -12,6 +12,17 @@ import sys
 
 import keys # Local keys file
 
+
+PRODUCT_DICTIONARY = 'Merriam-Webster\'s Collegiate® Dictionary'
+API_DICTIONARY = 'https://dictionaryapi.com/api/v3/references/collegiate/json/'
+KEY_DICTIONARY = keys.MW_COLLEGIATE
+SRC_DICTIONARY = 'collegiate'
+CACHE_DICT = 'cache-coll/'
+
+def url_dictionary(word: str) -> str:
+    return f'{API_DICTIONARY}{word}?key={KEY_DICTIONARY}'
+
+
 PRODUCT_THESAURUS = 'Merriam-Webster\'s Collegiate® Thesaurus'
 API_THESAURUS = 'https://dictionaryapi.com/api/v3/references/thesaurus/json/'
 KEY_THESAURUS = keys.MW_THESAURUS
@@ -22,10 +33,10 @@ def url_thesaurus(word: str) -> str:
     return f'{API_THESAURUS}{word}?key={KEY_THESAURUS}'
 
 
-def thesaurus_request(word: str):
-    response = requests.get(url_thesaurus(word))
+def api_request(word: str, url: str, key: str, api: str, src: str):
+    response = requests.get(url)
     if "Invalid API key" in response.text:
-        print(f'ERROR: Invalid key. Check key={KEY_THESAURUS} is correct for API {API_THESAURUS}', file=sys.stderr, flush=True)
+        print(f'ERROR: Invalid key. Check key={key} is correct for API {api}', file=sys.stderr, flush=True)
     elif response:  # Evaluates to True for status codes < 400
         data = response.json()
         if not isinstance(data, list):
@@ -35,12 +46,20 @@ def thesaurus_request(word: str):
         elif not isinstance(data[0], dict):
             print(f'ERROR: returned data[0] is not a dict', file=sys.stderr, flush=True)
         else:
-            if (not 'meta' in data[0]) or (not 'src' in data[0]['meta']) or (data[0]['meta']['src'] != SRC_THESAURUS):
-                print(f'WARNING: returned data is not from expected source: {SRC_THESAURUS}', file=sys.stderr, flush=True)
+            if (not 'meta' in data[0]) or (not 'src' in data[0]['meta']) or (data[0]['meta']['src'] != src):
+                print(f'WARNING: returned data is not from expected source: {src}', file=sys.stderr, flush=True)
         
             print(response.text)
     else:
         print(f'Request failed with status code: {response.status_code}', file=sys.stderr, flush=True)
+
+
+def dictionary_request(word: str):
+    api_request(word, url_dictionary(word), KEY_DICTIONARY, API_DICTIONARY, SRC_DICTIONARY)
+
+
+def thesaurus_request(word: str):
+    api_request(word, url_thesaurus(word), KEY_THESAURUS, API_THESAURUS, SRC_THESAURUS)
 
 
 def thesaurus_cache(word: str):
