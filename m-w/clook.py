@@ -14,27 +14,22 @@ import os
 import requests
 import sys
 
-def read_key() -> str:
-    keypath = './api-key-collegiate'
-    if not os.path.isfile(keypath):
-        exit(f'Key file not found: {keypath}')
-    # M-W API key must be alone on first line of key file.
-    with open(keypath, 'r') as file:
-        key = file.readline().strip()
-    return key
+import keys
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         exit("Usage: clook <word>")
 
     word = sys.argv[1]
-    KEY  = read_key()
-    URL  = f'https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={KEY}'
+    URL  = f'https://dictionaryapi.com/api/v3/references/collegiate/json/{word}?key={keys.MW_COLLEGIATE}'
     
     print(f'Looking up: "{word}" in Merriam-Webster\'s Collegiate® Dictionary', file=sys.stderr, flush=True)
     
     response = requests.get(URL)
-    if response:  # Evaluates to True for status codes < 400
+    if "Invalid API key" in response.text:
+        print(f'ERROR: Invalid key. Check key={keys.MW_COLLEGIATE} is correct for API https://dictionaryapi.com/api/v3/references/collegiate/json/',
+              file=sys.stderr, flush=True)
+    elif response:  # Evaluates to True for status codes < 400
         #print(f'Request succeeded with status code: {response.status_code}', file=sys.stderr, flush=True)
         data = response.json()
         if not isinstance(data, list):
