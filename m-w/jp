@@ -1,0 +1,2 @@
+#!/bin/sh
+jq . cache-coll/$1.json
