@@ -41,12 +41,12 @@ if __name__ == "__main__":
     if N < 1 or N > 14855:
         exit(f'ERROR: {N} must be an integer between 1 and 14855.')
 
+    print(f'Powered by {mw_tools.PRODUCT_THESAURUS} API', file=sys.stderr, flush=True)
+    
     # Read ALL GUESSES file
     ALL_FILE = "./ALL"
-    print(f'Powered by {mw_tools.PRODUCT_THESAURUS} API', file=sys.stderr, flush=True)
     print("Reading all valid guesses file:", ALL_FILE, "...", end=' ', file=sys.stderr, flush=True)
     valid_guesses = WordList.from_file(ALL_FILE)
-    valid_guesses.sort()
     sample = random.sample(valid_guesses.word_list, N)
     print(f'Random sample of {N}:', file=sys.stderr, flush=True)
 
